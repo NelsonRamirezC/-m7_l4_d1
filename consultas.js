@@ -53,22 +53,26 @@ export const addVenta = (nuevaVenta) => {
             let idVenta = venta.rows[0].id;
 
             //PASO 3: CONOCER LOS PRODUCTOS Y CANTIDAD A COMPRAR
-            nuevaVenta.productos.forEach(async (producto) => {
-                let productoBuscado = await pool.query("SELECT * FROM productos WHERE id=$1", [producto.id_producto])
-                let precioFinal = productoBuscado.precio - productoBuscado.descuento;
-                //PASO 4: INGRESAMOS LOS DETALLES DE LA VENTA
-                await pool.query("INSERT INTO detalle_ventas(cantidad, precio, venta_id, producto_id) VALUES ($1, $2, $3, $4)", [producto.cantidad, precioFinal, idVenta, producto.id_producto]);
-                
-                //PASO 5: DESCONTAR LOS STOCK:
-                await pool.query("UPDATE productos SET stock = stock - $1", [producto.cantidad])
-            });
+            for (let index = 0; index < nuevaVenta.productos.length; index++) {
+                let producto = nuevaVenta.productos[index]
+                let productoBuscado = await pool.query("SELECT * FROM productos WHERE id=$1", [producto.id])
 
-            pool.query("COMMIT")
+                if(productoBuscado.rows[0].length==0) throw ("Ha intentado comprar un producto que no existe.")
+
+                let precioFinal = productoBuscado.rows[0].precio - productoBuscado.rows[0].descuento;
+        
+                //PASO 4: INGRESAMOS LOS DETALLES DE LA VENTA
+                await pool.query("INSERT INTO detalle_ventas(cantidad, precio, venta_id, producto_id) VALUES ($1, $2, $3, $4)", [producto.cantidad, precioFinal, idVenta, producto.id]);
+                //PASO 5: DESCONTAR LOS STOCK:
+                await pool.query("UPDATE productos SET stock = stock - $1 WHERE id= $2", [producto.cantidad, producto.id])
+                
+            }
+            await pool.query("COMMIT")
             return resolve("Venta generada con éxito")
         } catch (error) {
             console.log(error)
             await pool.query('ROLLBACK')
-            return reject("No se puedo concretar la venta.")
+            return reject("Error al realizar la transacción.")
 
         }
     })

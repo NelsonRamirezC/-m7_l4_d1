@@ -25,11 +25,11 @@ app.post('/ventas', (req, res) => {
         id_cliente: 1,
         productos: [
             {
-                id_producto: 3,
-                cantidad: 4
+                id: 12,
+                cantidad: 2
             },
             {
-                id_producto: 5,
+                id: 13,
                 cantidad: 3
             }
         ]
